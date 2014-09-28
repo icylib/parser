@@ -91,6 +91,7 @@ def export_eeschema_library(components, out_file):
                 full_caption,
                 width, -50,
             ))
+            out_file.write("$FPLIST\nIC-%s\n$ENDFPLIST\n" % package.name)
             out_file.write("DRAW\n")
             # Outline Rectangle
             out_file.write("S 0 0 %i %i 0 0 0 N\n" % (width, height))
