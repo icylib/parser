@@ -146,10 +146,19 @@ class Package(object):
 
 class PackageMapping(object):
 
-    def __init__(self, component, package, pin_mapping):
+    def __init__(self, component, package, mapping_dict):
         self.component = component
         self.package = package
-        self.pin_mapping = pin_mapping
+        self.pin_mapping = mapping_dict.get("pads", [])
+        self.pad_mapping = {
+            label: i for i, label in enumerate(self.pin_mapping)
+        }
+
+    def has_pin(self, pin):
+        return pin.label in self.pad_mapping
+
+    def pad_number_for_pin(self, pin):
+        return self.pad_mapping[pin.label]
 
     def __repr__(self):
         return "<icylib.PackageMapping %s %r>" % (
