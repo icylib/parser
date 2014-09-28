@@ -179,9 +179,10 @@ def export_pcbnew_module(package, out_file):
                 ),
             ))
 
-            out_file.write(" (at %f %f)" % (
+            out_file.write(" (at %f %f %f)" % (
                 next_x.to(unit.mm).magnitude,
                 next_y.to(unit.mm).magnitude,
+                pad_set[3],
             ))
             out_file.write(" (size %f %f)" % (
                 package.pad_length.to(unit.mm).magnitude,
