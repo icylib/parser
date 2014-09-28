@@ -131,3 +131,74 @@ def export_eeschema_doclib(components, out_file):
         out_file.write("$ENDCMP %s\n" % component.name)
     out_file.write("#\n")
     out_file.write("#End Doc Library\n")
+
+
+def export_pcbnew_module(package, out_file):
+    from icylib.model import unit
+    out_file.write("(module IC-%s\n" % package.name)
+    out_file.write("  (at 0 0)\n")
+    if package.hole_size is None:
+        out_file.write("  (attr smd)\n")
+
+    pad_sets = []
+    pad_sets.append(
+        [
+            package.left_pads,
+            (
+                0.0 * unit.mm,
+                ((len(package.left_pads) - 1) * package.pad_pitch) / -2,
+            ),
+            (0.0 * unit.mm, package.pad_pitch),
+            0.0,
+        ]
+    )
+    if package.row_spacing is not None:
+        # Shift the left pads leftwards to center on the middle of the
+        # package.
+        left_pad_set = pad_sets[0]
+        left_pad_set[1] = (package.row_spacing / -2, left_pad_set[1][1])
+        # Populate the right pads.
+        pad_sets.append(
+            [
+                package.right_pads,
+                (package.row_spacing / 2.0, left_pad_set[1][1]),
+                (0.0 * unit.mm, package.pad_pitch),
+                0.0,
+            ]
+        )
+
+    for pad_set in pad_sets:
+        next_x = pad_set[1][0]
+        next_y = pad_set[1][1]
+        for pad_num in pad_set[0]:
+            out_file.write("  (pad %i %s %s" % (
+                pad_num,
+                "thru_hole" if package.hole_size is not None else "smd",
+                "rect" if package.hole_size is None else (
+                    "rect" if pad_num == 1 else "circle"
+                ),
+            ))
+
+            out_file.write(" (at %f %f)" % (
+                next_x.to(unit.mm).magnitude,
+                next_y.to(unit.mm).magnitude,
+            ))
+            out_file.write(" (size %f %f)" % (
+                package.pad_length.to(unit.mm).magnitude,
+                package.pad_width.to(unit.mm).magnitude,
+            ))
+
+            if package.hole_size is not None:
+                out_file.write(" (drill %f)" % (
+                    package.hole_size.to(unit.mm).magnitude,
+                ))
+                out_file.write(" (layers *.Cu *.Mask F.SilkS)")
+            else:
+                out_file.write(" (layers F.Cu F.Mask F.SilkS)")
+
+            out_file.write(")\n")
+
+            next_x += pad_set[2][0]
+            next_y += pad_set[2][1]
+
+    out_file.write(")\n")
