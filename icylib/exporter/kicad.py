@@ -1,4 +1,7 @@
 
+import math
+
+
 def export_eeschema_library(components, out_file):
     out_file.write("EESchema-LIBRARY Version 2.3\n")
     out_file.write("#encoding utf-8\n")
@@ -72,6 +75,12 @@ def export_eeschema_library(components, out_file):
             if width < (len(full_caption) * 60):
                 width = len(full_caption) * 60
             height = max_rows * 100 + 100
+
+            # Make sure width is a round grid increment.
+            # (it might not be if we grew out the width to fit the
+            # component caption)
+            width = int(math.ceil(float(width / 50)) * 50)
+
             sides[1][3] = width
 
             out_file.write("DEF %s IC 0 40 Y Y 1 F N\n" % full_name)
