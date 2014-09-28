@@ -110,3 +110,14 @@ def export_eeschema_library(components, out_file):
             out_file.write("ENDDRAW\n")
             out_file.write("ENDDEF\n")
     out_file.write("# End Library\n")
+
+
+def export_eeschema_doclib(components, out_file):
+    out_file.write("EESchema-DOCLIB Version 2.0\n")
+    out_file.write("#\n")
+    for component in components:
+        out_file.write("$CMP %s\n" % component.name)
+        out_file.write("D %s\n" % component.description)
+        out_file.write("$ENDCMP %s\n" % component.name)
+    out_file.write("#\n")
+    out_file.write("#End Doc Library\n")
