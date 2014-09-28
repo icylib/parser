@@ -1,6 +1,11 @@
 
 import os
 import os.path
+import pint
+
+
+unit = pint.UnitRegistry()
+
 
 class Library(object):
 
@@ -140,8 +145,96 @@ class Package(object):
 
     def __init__(self, name):
         self.name = name
-        # TODO: Parse the name to figure out the physical dimensions
-        # based on standard package types.
+        name_parts = name.split("-")
+        family = name_parts[0]
+
+        num_sides = None
+        self.hole_size = None  # stays None for surface mount
+        self.top_dent = False  # show the "dimple" at the top of the silkscreen
+        self.pin_1_marker = False  # show the dot next to pin 1
+        self.row_spacing = None # Only set for two-sided packages
+
+        if family == "DIP":
+            if len(name_parts) == 2:
+                name_parts.append("300")
+            if len(name_parts) == 3:
+                self.pad_count = int(name_parts[1])
+                self.hole_size = 32 * unit.mil
+                self.pad_width = 55 * unit.mil
+                self.pad_length = 55 * unit.mil
+                self.pad_pitch = 100 * unit.mil
+                self.row_spacing = int(name_parts[2]) * unit.mil
+                self.top_dent = True
+                num_sides = 2
+            else:
+                raise Exception("Invalid DIP package specification")
+        elif family == "SIP":
+            if len(name_parts) == 2:
+                self.pad_count = int(name_parts[1])
+                self.hole_size = 32 * unit.mil
+                self.pad_width = 55 * unit.mil
+                self.pad_length = 55 * unit.mil
+                self.pad_pitch = 100 * unit.mil
+                num_sides = 1
+            else:
+                raise Exception("Invalid SIP package specification")
+        elif family == "SO":
+            if len(name_parts) == 2:
+                name_parts.append("N")
+            if len(name_parts) == 3:
+
+                if name_parts[2] == "N":
+                    name_parts[2] = "5.4"
+                elif name_parts[2] == "W":
+                    name_parts[2] = "9.3"
+
+                self.pad_count = int(name_parts[1])
+                self.pad_width = 0.60 * unit.mm
+                self.pad_length = 1.55 * unit.mm
+                self.pad_pitch = 50 * unit.mil
+                self.row_spacing = float(name_parts[2]) * unit.mm
+                self.top_dent = True
+                num_sides = 2
+            else:
+                raise Exception("Invalid SO package specification")
+        elif family in ("QFP", "TQFP"):
+            if len(name_parts) == 3:
+                self.pad_count = int(name_parts[1])
+                self.pad_pitch = float(name_parts[2]) * unit.mm
+                self.pin_1_marker = True
+                num_sides = 4
+            else:
+                raise Exception("Invalid QFP package specification")
+        else:
+            raise Exception("Unsupported package family '%s'" % family)
+
+        if self.pad_count % num_sides != 0:
+            raise Exception("%s pin count must be divisible by %i" % (
+                family, num_sides,
+            ))
+
+        pads_each_side = self.pad_count / num_sides
+        self.left_pads = range(1, pads_each_side + 1)
+        if num_sides == 1:
+            self.right_pads = None
+            self.top_pads = None
+            self.bottom_pads = None
+        elif num_sides == 2:
+            self.right_pads = range(pads_each_side * 2, pads_each_side, -1)
+            self.top_pads = None
+            self.bottom_pads = None
+        elif num_sides == 4:
+            self.bottom_pads = range(
+                pads_each_side + 1, (pads_each_side * 2) + 1
+            )
+            self.right_pads = range(
+                pads_each_side * 3, (pads_each_side * 2), -1,
+            )
+            self.top_pads = range(
+                pads_each_side * 4, (pads_each_side * 3), -1,
+            )
+        else:
+            raise Exception("Can't make a %i-sided package" % num_sides)
 
 
 class PackageMapping(object):
@@ -151,7 +244,7 @@ class PackageMapping(object):
         self.package = package
         self.pin_mapping = mapping_dict.get("pads", [])
         self.pad_mapping = {
-            label: i for i, label in enumerate(self.pin_mapping)
+            label: i + 1 for i, label in enumerate(self.pin_mapping)
         }
 
     def has_pin(self, pin):
