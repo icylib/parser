@@ -152,7 +152,7 @@ def export_pcbnew_module(package, out_file):
             0.0,
         ]
     )
-    if package.row_spacing is not None:
+    if package.right_pads is not None:
         # Shift the left pads leftwards to center on the middle of the
         # package.
         left_pad_set = pad_sets[0]
@@ -166,6 +166,75 @@ def export_pcbnew_module(package, out_file):
                 0.0,
             ]
         )
+    if package.top_pads is not None:
+        pad_sets.append(
+            [
+                package.top_pads,
+                (
+                    ((len(package.top_pads) - 1) * package.pad_pitch) / -2,
+                    package.row_spacing / -2.0,
+                ),
+                (package.pad_pitch, 0.0 * unit.mm),
+                90.0,
+            ]
+        )
+    if package.bottom_pads is not None:
+        pad_sets.append(
+            [
+                package.bottom_pads,
+                (
+                    ((len(package.bottom_pads) - 1) * package.pad_pitch) / -2,
+                    package.row_spacing / 2.0,
+                ),
+                (package.pad_pitch, 0.0 * unit.mm),
+                90.0,
+            ]
+        )
+
+    silkscreen_box_height = (
+        ((len(package.left_pads) - 1) * package.pad_pitch) +
+        (package.silkscreen_overhang * 2.0)
+    )
+    silkscreen_box_width = package.silkscreen_overhang * 2
+    if package.right_pads is not None:
+        silkscreen_box_width = package.body_width
+    if package.top_pads is not None:
+        silkscreen_box_height = package.body_width
+
+    silkscreen_box_height_mm = silkscreen_box_height.to(unit.mm).magnitude
+    silkscreen_box_width_mm = silkscreen_box_width.to(unit.mm).magnitude
+
+    # Draw the silkscreen body box.
+    out_file.write("  (fp_line (start %f %f) (end %f %f) (layer F.SilkS) (width 0.2))\n" % (
+        silkscreen_box_width_mm / -2.0, silkscreen_box_height_mm / -2.0,
+        silkscreen_box_width_mm / -2.0, silkscreen_box_height_mm / 2.0,
+    ))
+    out_file.write("  (fp_line (start %f %f) (end %f %f) (layer F.SilkS) (width 0.2))\n" % (
+        silkscreen_box_width_mm / -2.0, silkscreen_box_height_mm / 2.0,
+        silkscreen_box_width_mm / 2.0, silkscreen_box_height_mm / 2.0,
+    ))
+    out_file.write("  (fp_line (start %f %f) (end %f %f) (layer F.SilkS) (width 0.2))\n" % (
+        silkscreen_box_width_mm / 2.0, silkscreen_box_height_mm / -2.0,
+        silkscreen_box_width_mm / 2.0, silkscreen_box_height_mm / 2.0,
+    ))
+    out_file.write("  (fp_line (start %f %f) (end %f %f) (layer F.SilkS) (width 0.2))\n" % (
+        silkscreen_box_width_mm / -2.0, silkscreen_box_height_mm / -2.0,
+        silkscreen_box_width_mm / 2.0, silkscreen_box_height_mm / -2.0,
+    ))
+
+    if package.top_dent:
+        out_file.write("  (fp_arc (start %f %f) (end %f %f) (angle 180) (layer F.SilkS) (width 0.2))\n" % (
+            0.0, silkscreen_box_height_mm / -2.0,
+            silkscreen_box_width_mm / 4.0, silkscreen_box_height_mm / -2.0,
+        ))
+
+    if package.pin_1_marker:
+        out_file.write("  (fp_arc (start %f %f) (end %f %f) (angle 360) (layer F.SilkS) (width 0.2))\n" % (
+            ((silkscreen_box_width / -2.0) + package.pad_pitch).to(unit.mm).magnitude,
+            ((silkscreen_box_height / -2.0) + package.pad_pitch).to(unit.mm).magnitude,
+            (((silkscreen_box_width / -2.0) + package.pad_pitch) + (package.pad_width / 2)).to(unit.mm).magnitude,
+            ((silkscreen_box_height / -2.0) + package.pad_pitch).to(unit.mm).magnitude,
+        ))
 
     for pad_set in pad_sets:
         next_x = pad_set[1][0]

@@ -153,6 +153,8 @@ class Package(object):
         self.top_dent = False  # show the "dimple" at the top of the silkscreen
         self.pin_1_marker = False  # show the dot next to pin 1
         self.row_spacing = None # Only set for two-sided packages
+        self.body_width = 0 * unit.mm
+        self.silkscreen_overhang = 0 * unit.mm
 
         if family == "DIP":
             if len(name_parts) == 2:
@@ -164,6 +166,8 @@ class Package(object):
                 self.pad_length = 55 * unit.mil
                 self.pad_pitch = 100 * unit.mil
                 self.row_spacing = int(name_parts[2]) * unit.mil
+                self.body_width = self.row_spacing - (100 * unit.mil)
+                self.silkscreen_overhang = 50 * unit.mil
                 self.top_dent = True
                 num_sides = 2
             else:
@@ -175,6 +179,7 @@ class Package(object):
                 self.pad_width = 55 * unit.mil
                 self.pad_length = 55 * unit.mil
                 self.pad_pitch = 100 * unit.mil
+                self.silkscreen_overhang = 50 * unit.mil
                 num_sides = 1
             else:
                 raise Exception("Invalid SIP package specification")
@@ -193,14 +198,23 @@ class Package(object):
                 self.pad_length = 1.55 * unit.mm
                 self.pad_pitch = 50 * unit.mil
                 self.row_spacing = float(name_parts[2]) * unit.mm
+                self.body_width = self.row_spacing - (100 * unit.mil)
+                self.silkscreen_overhang = 25 * unit.mil
                 self.top_dent = True
                 num_sides = 2
             else:
                 raise Exception("Invalid SO package specification")
-        elif family in ("QFP", "TQFP"):
+        elif family in ("QFP", "TQFP", "LQFP"):
             if len(name_parts) == 3:
+                name_parts.append("0.8")
+                name_parts.append("0.55")
+            if len(name_parts) == 5:
                 self.pad_count = int(name_parts[1])
-                self.pad_pitch = float(name_parts[2]) * unit.mm
+                self.body_width = float(name_parts[2]) * unit.mm
+                self.pad_pitch = float(name_parts[3]) * unit.mm
+                self.pad_width = float(name_parts[4]) * unit.mm
+                self.pad_length = 1.9 * unit.mm
+                self.row_spacing = self.body_width + self.pad_length
                 self.pin_1_marker = True
                 num_sides = 4
             else:
